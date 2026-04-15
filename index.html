@@ -330,11 +330,13 @@ function shareWhatsApp() {
     var p = getParams();
     var file = new File([blob], 'izin-karti-' + p.id + '.png', {type:'image/png'});
     if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-      return navigator.share({files:[file], title:'İzin Kartı — '+p.ad, text:p.ad+' | '+p.izinTur+' | '+p.baslangic+'–'+p.bitis});
+      return navigator.share({files:[file], title:'İzin Kartı — '+p.ad, text:p.ad+' | '+p.izinTur+' | '+p.baslangic+'–'+p.bitis})
+        .then(function(){ setTimeout(function(){ window.close(); }, 500); });
     } else {
       dlBlob(blob, 'izin-karti-' + p.id + '.png');
       setTimeout(function(){
         window.open('https://wa.me/?text='+encodeURIComponent('İzin Kartı: '+p.ad+' — '+p.izinTur+' ('+p.baslangic+'–'+p.bitis+')'),'_blank');
+        setTimeout(function(){ window.close(); }, 1000);
       }, 700);
       showToast('PNG indirildi. WhatsApp açılıyor...');
     }
