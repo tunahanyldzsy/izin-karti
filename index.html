@@ -44,9 +44,10 @@
     border-radius: 20px;
     border: 1.5px solid currentColor;
   }
-  .status-pill.bekliyor   { color: #b45309; background: rgba(254,243,199,0.7); }
-  .status-pill.onaylandi  { color: #15803d; background: rgba(220,252,231,0.7); }
-  .status-pill.reddedildi { color: #b91c1c; background: rgba(254,226,226,0.7); }
+  .status-pill.bekliyor    { color: #b45309; background: rgba(254,243,199,0.7); }
+  .status-pill.onaylandi   { color: #15803d; background: rgba(220,252,231,0.7); }
+  .status-pill.reddedildi  { color: #b91c1c; background: rgba(254,226,226,0.7); }
+  .status-pill.onaylanmadi { color: #b91c1c; background: rgba(254,226,226,0.7); }
 
   .card-wrap {
     width: 100%;
@@ -192,8 +193,9 @@ function enc(s) {
 
 var durumCfg = {
   bekliyor:   { warnFill:'rgba(254,249,195,0.9)', warnStroke:'rgba(250,204,21,0.6)',  iconFill:'#ca8a04', textFill:'#b45309', label:'ONAY BEKLİYOR' },
-  onaylandi:  { warnFill:'rgba(220,252,231,0.9)', warnStroke:'rgba(34,197,94,0.6)',   iconFill:'#16a34a', textFill:'#15803d', label:'ONAYLANDI'     },
-  reddedildi: { warnFill:'rgba(254,226,226,0.9)', warnStroke:'rgba(239,68,68,0.6)',   iconFill:'#dc2626', textFill:'#b91c1c', label:'REDDEDİLDİ'    },
+  onaylandi:   { warnFill:'rgba(220,252,231,0.9)', warnStroke:'rgba(34,197,94,0.6)',  iconFill:'#16a34a', textFill:'#15803d', label:'ONAYLANDI'     },
+  reddedildi:  { warnFill:'rgba(254,226,226,0.9)', warnStroke:'rgba(239,68,68,0.6)', iconFill:'#dc2626', textFill:'#b91c1c', label:'ONAYLANMADI'   },
+  onaylanmadi: { warnFill:'rgba(254,226,226,0.9)', warnStroke:'rgba(239,68,68,0.6)', iconFill:'#dc2626', textFill:'#b91c1c', label:'ONAYLANMADI'   },
 };
 
 function buildSVG(p) {
@@ -365,7 +367,7 @@ function showToast(msg) {
 window.addEventListener('DOMContentLoaded', function() {
   var p = getParams();
   var pill = document.getElementById('status-pill');
-  pill.textContent = {bekliyor:'Bekliyor', onaylandi:'Onaylandı', reddedildi:'Reddedildi'}[p.durum] || p.durum;
+  pill.textContent = {bekliyor:'Bekliyor', onaylandi:'Onaylandı', reddedildi:'Onaylanmadı', onaylanmadi:'Onaylanmadı'}[p.durum] || p.durum;
   pill.className = 'status-pill ' + p.durum;
 
   if (!/Mobi|Android|iPhone|iPad/.test(navigator.userAgent)) {
