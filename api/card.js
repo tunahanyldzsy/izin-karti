@@ -1,27 +1,14 @@
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
-
 module.exports = async (req, res) => {
   const params = new URLSearchParams(req.query).toString();
   const targetUrl = `https://tunahanyldzsy.github.io/izin-karti/?${params}`;
-
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: { width: 420, height: 900 },
-    executablePath: await chromium.executablePath(),
-    headless: true,
-  });
-
-  const page = await browser.newPage();
-  await page.goto(targetUrl, { waitUntil: 'networkidle0' });
-
-  // Sadece kartı screenshot al
-  const element = await page.$('.card-wrap');
-  const screenshot = await element.screenshot({ type: 'png' });
-
-  await browser.close();
-
+  
+  // Ücretsiz screenshot servisi
+  const screenshotUrl = `https://api.screenshotone.com/take?url=${encodeURIComponent(targetUrl)}&viewport_width=420&viewport_height=900&selector=.card-wrap&format=png&access_key=free`;
+  
+  const response = await fetch(screenshotUrl);
+  const buffer = await response.arrayBuffer();
+  
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=60');
-  res.send(screenshot);
+  res.send(Buffer.from(buffer));
 };
