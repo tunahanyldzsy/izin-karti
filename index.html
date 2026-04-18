@@ -240,7 +240,7 @@ function shareWhatsApp() {
     } else {
       dlBlob(blob, 'izin-karti-' + p.id + '.png');
       setTimeout(function(){
-        window.open('https://wa.me/?text='+encodeURIComponent('İzin Kartı: '+p.ad+' — '+p.izinTur+' ('+p.baslangic+'–'+p.bitis+')'),'_blank');
+        window.open('https://wa.me/?text='+encodeURIComponent('Mıntıka Sekretarya Mülahazası: '+p.mulahaza),'_blank');
         setTimeout(function(){ window.close(); }, 1000);
       }, 700);
       showToast('PNG indirildi. WhatsApp açılıyor...');
