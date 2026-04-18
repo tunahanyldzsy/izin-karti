@@ -236,7 +236,7 @@ function shareWhatsApp() {
     var p = getParams();
     var file = new File([blob], 'izin-karti-' + p.id + '.png', {type:'image/png'});
     if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-      return navigator.share({files:[file], title:'İzin Kartı — '+p.ad, text:p.ad+' | '+p.izinTur+' | '+p.baslangic+'–'+p.bitis})
+      return navigator.share({files:[file], title:'İzin Kartı — '+p.ad, text:'Mıntıka Sekretarya Mülahazası: '+p.mulahaza})
         .then(function(){ setTimeout(function(){ window.close(); }, 500); });
     } else {
       dlBlob(blob, 'izin-karti-' + p.id + '.png');
