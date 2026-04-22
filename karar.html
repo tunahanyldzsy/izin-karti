@@ -298,7 +298,7 @@ function shareWhatsApp() {
     var p = getParams();
     var file = new File([blob], 'karar-tutunagi-' + p.id + '.png', {type:'image/png'});
     if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-      return navigator.share({files:[file], title:'Karar Tutanağı', text:'Ref: '+p.id})
+      return navigator.share({files:[file], title:'Karar Tutanağı'})
         .then(function(){ setTimeout(function(){ window.close(); }, 500); });
     } else {
       dlBlob(blob, 'karar-tutunagi-' + p.id + '.png');
