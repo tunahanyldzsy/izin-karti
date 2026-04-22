@@ -106,8 +106,8 @@ function getParams() {
     mintika:      p.get('mintika')      || 'Marmara Bölgesi',
     kurum:        p.get('kurum')        || 'Merkez Karar Kurulu',
     karar:        p.get('karar')        || 'Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir. Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir.Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir.',
-    alinmaTarihi: p.get('alinmaTarihi') || '2026-04-10',
-    hedefTarihi:  p.get('hedefTarihi')  || '2026-04-30'
+    alinmaTarihi: p.get('alinmaTarihi') || '10.04.2026',
+    hedefTarihi:  p.get('hedefTarihi')  || '30.04.2026'
   };
 }
 
@@ -116,7 +116,12 @@ function enc(s) {
 }
 
 function calculateDays(targetDateStr) {
-  var target = new Date(targetDateStr);
+  var parts = targetDateStr.split('.');
+  if (parts.length !== 3) return { text: 'Geçersiz Tarih', diff: 0 };
+  
+  // parts[2]: Yıl, parts[1]: Ay (0-11 indeksli), parts[0]: Gün
+  var target = new Date(parts[2], parseInt(parts[1], 10) - 1, parts[0]);
+  
   if(isNaN(target.getTime())) return { text: 'Geçersiz Tarih', diff: 0 };
   
   var diffTime = target.getTime() - TODAY.getTime();
