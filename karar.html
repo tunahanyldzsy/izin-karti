@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karar Takip Mekanizması</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #e8eef5;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 16px 48px;
+    font-family: sans-serif;
+  }
+  .topbar {
+    width: 100%; max-width: 400px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+    opacity: 0; animation: fadeUp 0.4s ease 0.05s forwards;
+  }
+  .topbar-label { font-family: monospace; font-size: 11px; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase; }
+  .card-wrap {
+    width: 100%; max-width: 400px;
+    opacity: 0; animation: fadeUp 0.5s ease 0.15s forwards;
+  }
+  #svg-container { width: 100%; filter: drop-shadow(0 20px 40px rgba(15,23,42,0.18)); }
+  #svg-container svg { width: 100%; height: auto; display: block; }
+  .actions {
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 10px; margin-top: 20px;
+    opacity: 0; animation: fadeUp 0.5s ease 0.35s forwards;
+  }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px 20px; border-radius: 12px;
+    font-family: sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: none;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn:disabled { opacity: 0.6; cursor: default; }
+  .btn-wa { background: #25D366; color: #fff; box-shadow: 0 4px 14px rgba(37,211,102,0.3); }
+  .btn-dl { background: rgba(255,255,255,0.8); color: #0f172a; border: 1px solid rgba(226,232,240,0.9); box-shadow: 0 2px 8px rgba(15,23,42,0.06); }
+  .hint { font-family: monospace; font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
+  #loading {
+    position: fixed; inset: 0; background: #e8eef5;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px; z-index: 100;
+    transition: opacity 0.3s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .spinner { width: 28px; height: 28px; border: 2px solid #cbd5e1; border-top-color: #64748b; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .loading-text { font-family: monospace; font-size: 11px; color: #94a3b8; }
+  #toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #0f172a; color: #f1f5f9;
+    font-family: monospace; font-size: 12px;
+    padding: 10px 18px; border-radius: 8px;
+    transition: transform 0.3s ease;
+    white-space: nowrap; z-index: 200;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="spinner"></div>
+  <span class="loading-text">Karar oluşturuluyor...</span>
+</div>
+<div class="topbar">
+  <span class="topbar-label">Karar Takip Formu</span>
+</div>
+<div class="card-wrap">
+  <div id="svg-container"></div>
+</div>
+<div class="actions">
+  <button class="btn btn-wa" id="btn-wa" onclick="shareWhatsApp()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+    WhatsApp'ta Paylaş
+  </button>
+  <button class="btn btn-dl" id="btn-dl" onclick="downloadPNG()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    PNG İndir
+  </button>
+  <p class="hint" id="hint-text">Paylaşmak için WhatsApp butonuna basın</p>
+</div>
+<div id="toast"></div>
+<canvas id="canvas" style="display:none"></canvas>
+
+<script>
+var TODAY = new Date('2026-04-22T00:00:00'); 
+
+function getParams() {
+  var p = new URLSearchParams(location.search);
+  return {
+    id:           p.get('id')           || 'KRM-001',
+    mintika:      p.get('mintika')      || 'Marmara Bölgesi',
+    kurum:        p.get('kurum')        || 'Merkez Karar Kurulu',
+    karar:        p.get('karar')        || 'Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir. Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir.Bu alana uzun bir karar metni gelecektir. Karar metni birden fazla satıra yayılabilecek şekilde otomatik olarak alt satıra geçmelidir. Bölge mümessili tarafından alınan kararların takibi ve sürdürülebilirliği açısından bu metnin eksiksiz işlenmesi büyük önem arz etmektedir.',
+    alinmaTarihi: p.get('alinmaTarihi') || '2026-04-10',
+    hedefTarihi:  p.get('hedefTarihi')  || '2026-04-30'
+  };
+}
+
+function enc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+function calculateDays(targetDateStr) {
+  var target = new Date(targetDateStr);
+  if(isNaN(target.getTime())) return { text: 'Geçersiz Tarih', diff: 0 };
+  
+  var diffTime = target.getTime() - TODAY.getTime();
+  var diffDays = Math.ceil(diffTime / (1000 * 3600 * 24)); 
+  
+  if (diffDays > 0) return { text: diffDays + ' gün kaldı', diff: diffDays };
+  if (diffDays < 0) return { text: Math.abs(diffDays) + ' gün geçti', diff: diffDays };
+  return { text: 'Son Gün Bugün', diff: 0 };
+}
+
+function wrapText(text, maxChars) {
+  var words = text.split(' ');
+  var lines = [];
+  var currentLine = '';
+  
+  for (var i = 0; i < words.length; i++) {
+    var word = words[i];
+    
+    // Kelime tek başına satır sınırını aşıyorsa substring ile acımasızca kes
+    while (word.length > maxChars) {
+      if (currentLine) {
+        lines.push(currentLine);
+        currentLine = '';
+      }
+      lines.push(word.substring(0, maxChars));
+      word = word.substring(maxChars);
+    }
+    
+    if (word.length === 0) continue;
+
+    if (!currentLine) {
+      currentLine = word;
+    } else if (currentLine.length + word.length + 1 <= maxChars) {
+      currentLine += ' ' + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function calculateDynamicText(text, maxWidth, maxHeight, minSize, maxSize) {
+  for (var fs = maxSize; fs >= minSize; fs--) {
+    var charWidth = fs * 0.6; // Monospace ortalama karakter genişliği
+    var maxChars = Math.floor(maxWidth / charWidth);
+    var lines = wrapText(text, maxChars);
+    var lineHeight = fs * 1.5;
+    var totalHeight = lines.length * lineHeight;
+
+    if (totalHeight <= maxHeight) {
+      return { fontSize: fs, lines: lines, lineHeight: lineHeight };
+    }
+  }
+  // Sığmıyorsa minimum font boyutu ile döndür
+  var defaultChars = Math.floor(maxWidth / (minSize * 0.6));
+  return { fontSize: minSize, lines: wrapText(text, defaultChars), lineHeight: minSize * 1.5 };
+}
+
+function buildSVG(p) {
+  var timeInfo = calculateDays(p.hedefTarihi);
+  
+  // 1080x1920 Base Koordinatları
+  var yMintika = 320;
+  var yKurum = 480;
+  var yTarih = 640;
+  var yKarar = 800;
+  var yImza = 1650; // Alt kısıma sabitlendi
+  
+  var kararBoxHeight = 800; // yKarar(800) ile yImza(1650) arasını dolduracak sabit yükseklik
+  var maxTextWidth = 864; // Kutu genişliği(936) - Padding(72)
+  var maxTextHeight = 640; // Kutu yüksekliği(800) - Başlık(100) - Alt Padding(60)
+  
+  var textLayout = calculateDynamicText(p.karar, maxTextWidth, maxTextHeight, 20, 50);
+  
+  var svgStr = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920' width='1080' height='1920'>"
+  + "<defs>"
+  + "<filter id='shadow' x='-20%' y='-20%' width='140%' height='140%'><feDropShadow dx='0' dy='18' stdDeviation='30' flood-color='#0f172a' flood-opacity='0.08'/></filter>"
+  + "<linearGradient id='headerGrad' x1='0' y1='0' x2='1' y2='0'><stop offset='0%' stop-color='#0f172a'/><stop offset='100%' stop-color='#1e293b'/></linearGradient>"
+  + "</defs>"
+
+  // Arka plan
+  + "<rect width='1080' height='1920' fill='#f0f5fb'/>"
+
+  // Ana kart
+  + "<rect x='36' y='36' width='1008' height='1848' rx='48' fill='#ffffff' stroke='rgba(226,232,240,0.8)' stroke-width='3' filter='url(#shadow)'/>"
+
+  // Header
+  + "<path d='M 36 84 Q 36 36 84 36 L 996 36 Q 1044 36 1044 84 L 1044 260 L 36 260 Z' fill='url(#headerGrad)'/>"
+  + "<text x='540' y='140' fill='#ffffff' font-family='sans-serif' font-weight='700' font-size='44' text-anchor='middle' letter-spacing='3'>KARAR TAKİP TUTANAĞI</text>"
+  + "<text x='540' y='200' fill='#94a3b8' font-size='28' text-anchor='middle' font-family='monospace' letter-spacing='2'>KARAR NO: " + enc(p.id) + "</text>"
+  
+  // Ayraç çizgi
+  + "<rect x='36' y='256' width='1008' height='6' fill='#0369a1'/>";
+
+  // Mıntıka ve Kurum Alanları
+  svgStr += fieldRow(yMintika, 'MINTIKA', p.mintika);
+  svgStr += fieldRow(yKurum, 'İLGİLİ KURUM', p.kurum);
+
+  // Tarih Alanları (3 kutu yan yana)
+  // Kutu 1: Alınma Tarihi
+  svgStr += "<rect x='72' y='" + yTarih + "' width='296' height='140' rx='24' fill='#ffffff' stroke='#e2e8f0' stroke-width='3'/>"
+  + "<text x='220' y='" + (yTarih + 54) + "' fill='#64748b' font-family='sans-serif' font-size='18' letter-spacing='1' font-weight='600' text-anchor='middle'>ALINMA TARİHİ</text>"
+  + "<text x='220' y='" + (yTarih + 104) + "' fill='#0f172a' font-family='sans-serif' font-weight='700' font-size='32' text-anchor='middle'>" + enc(p.alinmaTarihi) + "</text>";
+
+  // Kutu 2: Son Tarih
+  svgStr += "<rect x='392' y='" + yTarih + "' width='296' height='140' rx='24' fill='#ffffff' stroke='#e2e8f0' stroke-width='3'/>"
+  + "<text x='540' y='" + (yTarih + 54) + "' fill='#64748b' font-family='sans-serif' font-size='18' letter-spacing='1' font-weight='600' text-anchor='middle'>SON TARİH</text>"
+  + "<text x='540' y='" + (yTarih + 104) + "' fill='#0f172a' font-family='sans-serif' font-weight='700' font-size='32' text-anchor='middle'>" + enc(p.hedefTarihi) + "</text>";
+
+  // Kutu 3: Mevcut Durum
+  var timeColor = timeInfo.diff < 0 ? '#dc2626' : (timeInfo.diff === 0 ? '#ca8a04' : '#16a34a');
+  svgStr += "<rect x='712' y='" + yTarih + "' width='296' height='140' rx='24' fill='#ffffff' stroke='#e2e8f0' stroke-width='3'/>"
+  + "<text x='860' y='" + (yTarih + 54) + "' fill='#64748b' font-family='sans-serif' font-size='18' letter-spacing='1' font-weight='600' text-anchor='middle'>DURUM</text>"
+  + "<text x='860' y='" + (yTarih + 104) + "' fill='" + timeColor + "' font-family='sans-serif' font-weight='700' font-size='32' text-anchor='middle'>" + enc(timeInfo.text) + "</text>";
+
+  // Karar Alanı (Sabit alanlı, dinamik boyutlu, monospace)
+  svgStr += "<rect x='72' y='" + yKarar + "' width='936' height='" + (kararBoxHeight-40) + "' rx='24' fill='#f8fafc' stroke='#e2e8f0' stroke-width='3'/>"
+  + "<text x='108' y='" + (yKarar + 56) + "' fill='#64748b' font-family='sans-serif' font-size='24' letter-spacing='1.5' font-weight='600'>KARAR METNİ</text>";
+  
+  for(var i=0; i<textLayout.lines.length; i++){
+    svgStr += "<text x='108' y='" + (yKarar + 120 + (i * textLayout.lineHeight)) + "' fill='#0f172a' font-family='monospace' font-size='" + textLayout.fontSize + "' letter-spacing='0'>" + enc(textLayout.lines[i]) + "</text>";
+  }
+
+  // İmza Alanı (1650'ye sabit)
+  svgStr += "<text x='540' y='" + (yImza - 30) + "' fill='#64748b' font-family='sans-serif' font-size='28' font-weight='600' text-anchor='middle'>BÖLGE MÜMESSİLİ İMZASI</text>"
+  + "<path d='M 380 " + (yImza +40 + 40) + " C 395 " + (yImza +40 - 40) + ", 480 " + (yImza +40 - 70) + ", 420 " + (yImza +40 + 40) + " C 380 " + (yImza +40 + 140) + ", 350 " + (yImza +40 + 170) + ", 410 " + (yImza +40 + 110) + " C 460 " + (yImza +40 + 40) + ", 480 " + (yImza +40 - 15) + ", 510 " + (yImza +40 + 70) + " C 540 " + (yImza +40 - 15) + ", 570 " + (yImza +40 - 15) + ", 600 " + (yImza +40 + 70) + " C 630 " + (yImza +40 + 10) + ", 680 " + (yImza +40 + 30) + ", 770 " + (yImza +40 + 40) + "' fill='none' stroke='#0f172a' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/>"
+  + "<rect x='300' y='" + (yImza + 190) + "' width='480' height='3' fill='#cbd5e1'/>";
+
+  svgStr += "</svg>";
+  return svgStr;
+}
+
+function fieldRow(y, label, value) {
+  return ""
+    + "<rect x='72' y='" + y + "' width='936' height='140' rx='24' fill='#ffffff' stroke='#e2e8f0' stroke-width='3'/>"
+    + "<text x='108' y='" + (y+48) + "' fill='#64748b' font-family='sans-serif' font-size='24' letter-spacing='1.5' font-weight='600'>" + enc(label) + "</text>"
+    + "<text x='108' y='" + (y+104) + "' fill='#0f172a' font-family='sans-serif' font-weight='700' font-size='40'>" + enc(value) + "</text>";
+}
+
+function svgToBlob(svgStr) {
+  return new Promise(function(resolve, reject) {
+    var canvas = document.getElementById('canvas');
+    canvas.width = 1080; 
+    canvas.height = 1920;
+    var ctx = canvas.getContext('2d');
+    var img = new Image();
+    var blob = new Blob([svgStr], {type:'image/svg+xml'});
+    var url = URL.createObjectURL(blob);
+    img.onload = function() {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(b){ resolve(b); }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+var _blob = null;
+function getBlob() {
+  if (_blob) return Promise.resolve(_blob);
+  return svgToBlob(buildSVG(getParams())).then(function(b){ _blob = b; return b; });
+}
+
+var WA_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> WhatsApp\'ta Paylaş';
+var DL_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG İndir';
+
+function shareWhatsApp() {
+  var btn = document.getElementById('btn-wa');
+  btn.disabled = true; btn.textContent = 'İşleniyor...';
+  getBlob().then(function(blob) {
+    var p = getParams();
+    var file = new File([blob], 'karar-tutunagi-' + p.id + '.png', {type:'image/png'});
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+      return navigator.share({files:[file], title:'Karar Tutanağı', text:'Ref: '+p.id})
+        .then(function(){ setTimeout(function(){ window.close(); }, 500); });
+    } else {
+      dlBlob(blob, 'karar-tutunagi-' + p.id + '.png');
+      setTimeout(function(){
+        window.open('https://wa.me/?text='+encodeURIComponent('Karar Tutanağı Ref: '+p.id),'_blank');
+      }, 700);
+      showToast('PNG indirildi. WhatsApp açılıyor...');
+    }
+  }).catch(function(e){
+    if(e && e.name !== 'AbortError') showToast('İşlem iptal edildi.');
+  }).finally(function(){ btn.disabled=false; btn.innerHTML=WA_ICON; });
+}
+
+function downloadPNG() {
+  var btn = document.getElementById('btn-dl');
+  btn.disabled = true; btn.textContent = 'İşleniyor...';
+  getBlob().then(function(blob){
+    dlBlob(blob, 'karar-tutunagi-' + getParams().id + '.png');
+    showToast('PNG indirildi ✓');
+  }).finally(function(){ btn.disabled=false; btn.innerHTML=DL_ICON; });
+}
+
+function dlBlob(blob, name) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var p = getParams();
+  document.getElementById('svg-container').innerHTML = buildSVG(p);
+  setTimeout(function(){ document.getElementById('loading').classList.add('hidden'); }, 300);
+});
+</script>
+</body>
+</html>
