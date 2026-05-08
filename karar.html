@@ -97,7 +97,8 @@
 <canvas id="canvas" style="display:none"></canvas>
 
 <script>
-var TODAY = new Date('2026-04-22T00:00:00'); 
+var TODAY = new Date();
+TODAY.setHours(0, 0, 0, 0);
 
 function getParams() {
   var p = new URLSearchParams(location.search);
